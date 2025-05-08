@@ -46,3 +46,11 @@ def enviar_para_drive(nome_arquivo, id_pasta):
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     print(f"Arquivo enviado! ID: {file.get('id')}")
 
+def deletar_arquivo_local(caminho_arquivo):
+    try:
+        os.remove(caminho_arquivo)
+        print(f"Arquivo local '{caminho_arquivo}' deletado com sucesso.")
+    except FileNotFoundError:
+        print(f"Arquivo '{caminho_arquivo}' não encontrado.")
+    except Exception as e:
+        print(f"Erro ao deletar o arquivo '{caminho_arquivo}': {e}")
