@@ -1,5 +1,7 @@
 import os
 import io
+import json
+import tempfile
 import pickle
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
@@ -18,11 +20,22 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            # Lê JSON da variável .env
+            credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+            if not credentials_json:
+                raise Exception("Variável de ambiente GOOGLE_CREDENTIALS_JSON não encontrada.")
+
+            # Converte string para dict e escreve em um arquivo temporário
+            data = json.loads(credentials_json)
+            with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".json") as temp:
+                json.dump(data, temp)
+                temp.flush()
+                flow = InstalledAppFlow.from_client_secrets_file(temp.name, SCOPES)
+                creds = flow.run_local_server(port=0)
 
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
+
     return build('drive', 'v3', credentials=creds)
 
 def baixar_arquivo_drive(file_id, nome_destino):
