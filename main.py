@@ -1,51 +1,23 @@
-from openpyxl import load_workbook
-from openpyxl.cell.cell import MergedCell
+from drive_utils import baixar_arquivo_drive, enviar_para_drive
+from chamada import processar_chamada
+import os
 
-def extrair_nomes(sheet, col, linha_ini, linha_fim):
-    return [
-        sheet.cell(row=i, column=col).value
-        for i in range(linha_ini, linha_fim)
-        if sheet.cell(row=i, column=col).value
-    ]
+# IDs do Google Drive
+ID_MASTER = '12T8udyYFmfBWgWViTdOfMey9J8oDJcMC'
+ID_TEMPLATE = '1p8-va-vmrq8od3mYigKlMPRJNPFnRdNj'
+ID_PASTA_UPLOAD = '16XakderrRBPhGelfTmGyoBZJhCju_zHg'
 
-def colar_nomes(sheet, nomes, col, linha_ini):
-    for i, nome in enumerate(nomes, start=linha_ini):
-        cell = sheet.cell(row=i, column=col)
-        if not isinstance(cell, MergedCell):
-            cell.value = nome
+# Nomes dos arquivos locais
+ARQUIVO_MASTER = 'master.xlsx'
+ARQUIVO_TEMPLATE = 'lista_chamada.xlsx'
+ARQUIVO_SAIDA = 'lista_chamada_atualizada.xlsx'
 
-# 1. Abrir arquivos
-wb_master = load_workbook('master.xlsx')
-wb_template = load_workbook('lista_chamada.xlsx')
+# Baixar arquivos necessários
+baixar_arquivo_drive(ID_MASTER, ARQUIVO_MASTER)
+baixar_arquivo_drive(ID_TEMPLATE, ARQUIVO_TEMPLATE)
 
-# 2. Selecionar planilhas
-planilhas = {
-    "08-10": wb_master['Pannunzio - Sab 8h-10h'],
-    "10-12": wb_master['Pannunzio - Sab 10h-12h'],
-    "12-14": wb_master['Pannunzio - Sab 12h30-14h30'],
-    "14-16": wb_master['Pannunzio - Sab 14h30-16h30'],
-}
+# Processar planilhas
+processar_chamada(ARQUIVO_MASTER, ARQUIVO_TEMPLATE, ARQUIVO_SAIDA)
 
-# 3. Mapeamento de salas com suas posições
-mapeamento = [
-    # (hora, sala, linha_inicio, linha_fim, linha_destino)
-    ("08-10", "6", 5, 50, 5),
-    ("08-10", "7", 55, 105, 66),
-    ("10-12", "6", 5, 50, 129),
-    ("10-12", "7", 55, 105, 188),
-    ("12-14", "6", 5, 50, 248),
-    ("12-14", "7", 55, 105, 290),
-    ("14-16", "6", 5, 50, 336),
-    ("14-16", "7", 55, 105, 394),
-]
-
-sheet_output = wb_template['Table 1']
-
-# 4. Executar extração e colagem
-for hora, sala, ini, fim, destino in mapeamento:
-    planilha = planilhas[hora]
-    nomes = extrair_nomes(planilha, col=1, linha_ini=ini, linha_fim=fim)
-    colar_nomes(sheet_output, nomes, col=8, linha_ini=destino)
-
-# 5. Salvar resultado
-wb_template.save('lista_chamada_atualizada.xlsx')
+# Enviar resultado para o Google Drive
+enviar_para_drive(ARQUIVO_SAIDA, ID_PASTA_UPLOAD)
