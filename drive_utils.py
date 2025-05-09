@@ -37,8 +37,7 @@ def baixar_arquivo_drive(file_id, nome_destino):
 
 
 def enviar_para_drive(nome_arquivo, id_pasta=None, file_id=None):
-    creds = authenticate()
-    service = build('drive', 'v3', credentials=creds)
+    service = authenticate()
     media = MediaFileUpload(nome_arquivo, resumable=True)
 
     if file_id:
