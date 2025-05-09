@@ -2,41 +2,28 @@ import os
 import io
 import json
 import tempfile
-import pickle
+from dotenv import load_dotenv
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+
+load_dotenv()
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def authenticate():
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if not credentials_json:
+        raise Exception("Variável de ambiente GOOGLE_CREDENTIALS_JSON não encontrada.")
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            # Lê JSON da variável .env
-            credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-            if not credentials_json:
-                raise Exception("Variável de ambiente GOOGLE_CREDENTIALS_JSON não encontrada.")
-
-            # Converte string para dict e escreve em um arquivo temporário
-            data = json.loads(credentials_json)
-            with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".json") as temp:
-                json.dump(data, temp)
-                temp.flush()
-                flow = InstalledAppFlow.from_client_secrets_file(temp.name, SCOPES)
-                creds = flow.run_console()
-
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
+    data = json.loads(credentials_json)
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".json") as temp:
+        json.dump(data, temp)
+        temp.flush()
+        creds = service_account.Credentials.from_service_account_file(temp.name, scopes=SCOPES)
+    os.remove(temp.name)
     return build('drive', 'v3', credentials=creds)
+
 
 def baixar_arquivo_drive(file_id, nome_destino):
     service = authenticate()
