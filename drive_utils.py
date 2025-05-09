@@ -36,15 +36,28 @@ def baixar_arquivo_drive(file_id, nome_destino):
         print(f"Baixando {nome_destino}: {int(status.progress() * 100)}%")
 
 
-def enviar_para_drive(nome_arquivo, id_pasta):
-    service = authenticate()
-    file_metadata = {
-        'name': nome_arquivo,
-        'parents': [id_pasta]
-    }
+def enviar_para_drive(nome_arquivo, id_pasta=None, file_id=None):
+    creds = authenticate()
+    service = build('drive', 'v3', credentials=creds)
     media = MediaFileUpload(nome_arquivo, resumable=True)
-    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    print(f"Arquivo enviado! ID: {file.get('id')}")
+
+    if file_id:
+        updated_file = service.files().update(
+            fileId=file_id,
+            media_body=media
+        ).execute()
+        print(f"Arquivo atualizado! ID: {updated_file.get('id')}")
+    else:
+        file_metadata = {
+            'name': nome_arquivo,
+            'parents': [id_pasta] if id_pasta else []
+        }
+        created_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        print(f"Arquivo enviado! ID: {created_file.get('id')}")
 
 def deletar_arquivo_local(caminho_arquivo):
     try:
