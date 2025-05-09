@@ -1,27 +1,31 @@
 import os
 import io
-import json
-import tempfile
-from dotenv import load_dotenv
-from google.oauth2 import service_account
+import pickle
 from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
-load_dotenv()
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def authenticate():
-    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if not credentials_json:
-        raise Exception("Variável de ambiente GOOGLE_CREDENTIALS_JSON não encontrada.")
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
 
-    data = json.loads(credentials_json)
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".json") as temp:
-        json.dump(data, temp)
-        temp.flush()
-        creds = service_account.Credentials.from_service_account_file(temp.name, scopes=SCOPES)
-    os.remove(temp.name)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
     return build('drive', 'v3', credentials=creds)
 
 
@@ -37,8 +41,7 @@ def baixar_arquivo_drive(file_id, nome_destino):
 
 
 def enviar_para_drive(nome_arquivo, id_pasta=None, file_id=None):
-    creds = authenticate()
-    service = build('drive', 'v3', credentials=creds)
+    service = authenticate()
     media = MediaFileUpload(nome_arquivo, resumable=True)
 
     if file_id:
