@@ -70,3 +70,16 @@ def deletar_arquivo_local(caminho_arquivo):
         print(f"Arquivo '{caminho_arquivo}' não encontrado.")
     except Exception as e:
         print(f"Erro ao deletar o arquivo '{caminho_arquivo}': {e}")
+
+def buscar_id_por_nome(nome_arquivo):
+    service = authenticate()
+    query = f"name='{nome_arquivo}' and trashed=false"
+    resultados = service.files().list(q=query, spaces='drive', fields="files(id, name)").execute()
+    arquivos = resultados.get('files', [])
+
+    if not arquivos:
+        print(f"Nenhum arquivo encontrado com o nome: {nome_arquivo}")
+        return None
+    else:
+        # Retorna o primeiro encontrado
+        return arquivos[0]['id']
